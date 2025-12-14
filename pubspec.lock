@@ -281,14 +281,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.11"
-  device_apps:
-    dependency: "direct main"
-    description:
-      name: device_apps
-      sha256: e84dc74d55749993fd671148cc0bd53096e1be0c268fc364285511b1d8a4c19b
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.2.0"
   device_info_plus:
     dependency: "direct main"
     description:
@@ -425,22 +417,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.6.35"
-  firebase_dynamic_links:
-    dependency: "direct main"
-    description:
-      name: firebase_dynamic_links
-      sha256: "47b8c8a8546d8a7f9000edb90848549f20b137d814ee7e0407b3d43b8445e282"
-      url: "https://pub.dev"
-    source: hosted
-    version: "5.5.7"
-  firebase_dynamic_links_platform_interface:
-    dependency: transitive
-    description:
-      name: firebase_dynamic_links_platform_interface
-      sha256: "72e7810635f908ce060c5803c7acb29116c5b6befc73e90446c52722bc9506a2"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.6+35"
   firebase_messaging:
     dependency: "direct main"
     description:
@@ -800,6 +776,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.0.11"
+  installed_apps:
+    dependency: "direct main"
+    description:
+      name: installed_apps
+      sha256: dd2b7c531f91114cd6df447c56567593c9799ca83f057137ae719324ae0afd06
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.6.0"
   intl:
     dependency: "direct main"
     description:

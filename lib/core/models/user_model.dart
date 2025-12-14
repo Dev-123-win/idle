@@ -1,5 +1,6 @@
 import 'package:hive/hive.dart';
-import 'upgrade_model.dart'; // Import before part
+import 'upgrade_model.dart';
+import 'achievement_model.dart'; // Added import
 
 part 'user_model.g.dart';
 
@@ -99,6 +100,9 @@ class UserModel {
   @HiveField(28)
   final List<OwnedUpgrade> ownedUpgrades;
 
+  @HiveField(29)
+  final List<AchievementModel> achievements;
+
   UserModel({
     required this.uid,
     this.email,
@@ -129,6 +133,7 @@ class UserModel {
     this.claimedReferrals = const [],
     this.hasPassiveUpgrade = false,
     this.ownedUpgrades = const [],
+    this.achievements = const [],
   });
 
   UserModel copyWith({
@@ -161,6 +166,7 @@ class UserModel {
     List<String>? claimedReferrals,
     bool? hasPassiveUpgrade,
     List<OwnedUpgrade>? ownedUpgrades,
+    List<AchievementModel>? achievements,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -192,6 +198,7 @@ class UserModel {
       claimedReferrals: claimedReferrals ?? this.claimedReferrals,
       hasPassiveUpgrade: hasPassiveUpgrade ?? this.hasPassiveUpgrade,
       ownedUpgrades: ownedUpgrades ?? this.ownedUpgrades,
+      achievements: achievements ?? this.achievements,
     );
   }
 
@@ -226,6 +233,7 @@ class UserModel {
       'claimedReferrals': claimedReferrals,
       'hasPassiveUpgrade': hasPassiveUpgrade,
       'ownedUpgrades': ownedUpgrades.map((u) => u.toJson()).toList(),
+      'achievements': achievements.map((a) => a.toJson()).toList(),
     };
   }
 
@@ -276,6 +284,11 @@ class UserModel {
       ownedUpgrades:
           (json['ownedUpgrades'] as List<dynamic>?)
               ?.map((e) => OwnedUpgrade.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      achievements:
+          (json['achievements'] as List<dynamic>?)
+              ?.map((e) => AchievementModel.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
     );

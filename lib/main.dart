@@ -15,6 +15,7 @@ import 'features/auth/login_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'features/home/home_screen.dart';
 import 'core/services/security_service.dart';
+import 'core/repositories/local_game_repository.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -27,8 +28,17 @@ void main() async {
   Hive.registerAdapter(AchievementModelAdapter());
   Hive.registerAdapter(OwnedUpgradeAdapter());
 
-  // Initialize Firebase
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // Initialize Local Repository
+  await LocalGameRepository().init();
+
+  // Initialize Firebase (keep online checks safe)
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint("Firebase init failed (offline?): $e");
+  }
 
   // Initialize AdMob
   await AdMobService().initialize();
@@ -129,15 +139,44 @@ class _AppEntryState extends State<AppEntry> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // Main App Content
-        if (_isConnected) _buildContent() else const _NoInternetScreen(),
+        // Main App Content - Only visible when connected
+        if (_isConnected) _buildContent(),
 
-        // Overlay for blocking if connection drops while using
+        // Blocking Offline Screen
         if (!_isConnected)
-          Container(
-            color: Colors.black.withAlpha(204),
-            width: double.infinity,
-            height: double.infinity,
+          Scaffold(
+            backgroundColor: AppColors.background,
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.wifi_off, size: 64, color: AppColors.error),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No Internet Connection',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Please enable internet to continue playing.',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: _initConnectivity,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.black,
+                    ),
+                    child: const Text('Try Again'),
+                  ),
+                ],
+              ),
+            ),
           ),
       ],
     );
@@ -152,49 +191,6 @@ class _AppEntryState extends State<AppEntry> {
       case AppState.home:
         return const HomeScreen();
     }
-  }
-}
-
-class _NoInternetScreen extends StatelessWidget {
-  const _NoInternetScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.wifi_off_rounded,
-                size: 80,
-                color: AppColors.error,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'No Internet Connection',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'CryptoMiner requires an active internet connection to mine and save your progress.',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }
 

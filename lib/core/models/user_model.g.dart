@@ -46,13 +46,14 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       claimedReferrals: (fields[26] as List).cast<String>(),
       hasPassiveUpgrade: fields[27] as bool,
       ownedUpgrades: (fields[28] as List).cast<OwnedUpgrade>(),
+      achievements: (fields[29] as List).cast<AchievementModel>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, UserModel obj) {
     writer
-      ..writeByte(29)
+      ..writeByte(30)
       ..writeByte(0)
       ..write(obj.uid)
       ..writeByte(1)
@@ -110,7 +111,9 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       ..writeByte(27)
       ..write(obj.hasPassiveUpgrade)
       ..writeByte(28)
-      ..write(obj.ownedUpgrades);
+      ..write(obj.ownedUpgrades)
+      ..writeByte(29)
+      ..write(obj.achievements);
   }
 
   @override

@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'dart:convert';
 import 'dart:async';
-import 'package:hive_flutter/hive_flutter.dart';
+import '../repositories/local_game_repository.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
@@ -39,10 +39,8 @@ class GameService {
   DateTime? _lastActionTime;
 
   // CLIENT-SIDE STORAGE
-  static const String boxUsers = 'users_box';
-  static const String boxUpgrades = 'upgrades_box';
-
-  Box<UserModel>? _userBox;
+  // CLIENT-SIDE STORAGE
+  final LocalGameRepository _localRepo = LocalGameRepository();
 
   // SYNC CONFIG
   static const String _workerUrl = AppConstants.cloudflareWorkerBaseUrl;
@@ -59,8 +57,7 @@ class GameService {
 
   /// Initialize Local Storage
   Future<void> initLocal() async {
-    _userBox = await Hive.openBox<UserModel>(boxUsers);
-    // Open other boxes if needed
+    await _localRepo.init();
   }
 
   /// Start a new session
@@ -77,11 +74,11 @@ class GameService {
     _lastActionTime = null;
     _behavioralFlags.clear();
 
-    // Start Optimized Periodic Sync (Every 10 minutes)
-    // Balances data safety with Firestore Free Tier limits.
+    // Start Optimized Periodic Sync (Every 4 hours)
+    // Offline-First Model: Syncs large batches less frequently
     _periodicSyncTimer?.cancel();
     _periodicSyncTimer = Timer.periodic(
-      const Duration(minutes: 10),
+      const Duration(hours: 4),
       (_) => syncState(getCurrentUserId()),
     );
 
@@ -274,14 +271,12 @@ class GameService {
 
   /// Save user to local storage
   Future<void> saveUserLocal(UserModel user) async {
-    if (_userBox == null) await initLocal();
-    await _userBox!.put(user.uid, user);
+    await _localRepo.saveUser(user);
   }
 
   /// Get user from local storage
   Future<UserModel?> getLocalUser(String uid) async {
-    if (_userBox == null) await initLocal();
-    return _userBox!.get(uid);
+    return _localRepo.getUser();
   }
 
   // ===== TAP MECHANICS =====
@@ -402,27 +397,28 @@ class GameService {
     debugPrint('Starting periodic sync...');
 
     try {
-      // 1. Sync Logic - Send current TOTALS to server
-      // The server will calculate deltas based on what it last saw.
-      // Or we can send deltas if we track "lastSyncedState".
-      // For robustness: Send Totals.
+      final body = {
+        'uid': uid,
+        'totalTaps': user.totalTaps,
+        'coinBalance': user.coinBalance,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+        'deviceId': _deviceId,
+        // Send full state
+        'ownedUpgrades': user.ownedUpgrades.map((u) => u.toJson()).toList(),
+        'achievements': user.achievements.map((a) => a.toJson()).toList(),
+        'loginStreak': user.loginStreak,
+        'lastLoginDate': user.lastLoginDate,
+      };
 
       final response = await http.post(
         Uri.parse('$_workerUrl/api/sync-state'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'uid': uid,
-          'totalTaps': user.totalTaps,
-          'coinBalance': user.coinBalance,
-          'ownedUpgrades': user.ownedUpgrades.map((u) => u.toJson()).toList(),
-          'timestamp': DateTime.now().millisecondsSinceEpoch,
-          'deviceId': _deviceId,
-        }),
+        body: jsonEncode(body),
       );
 
       if (response.statusCode == 200) {
         debugPrint('Periodic sync successful');
-        // Update "Last Sync" time in user model locally?
+        // We could clear a "dirty" flag here if we had one
         return true;
       } else {
         debugPrint('Periodic sync failed: ${response.statusCode}');
@@ -574,7 +570,7 @@ class GameService {
     return upgrades;
   }
 
-  /// Purchase or upgrade (Server Authoritative)
+  /// Purchase or upgrade (Local First)
   Future<PurchaseResult> purchaseUpgrade(
     UserModel user,
     UpgradeModel upgrade,
@@ -584,45 +580,26 @@ class GameService {
       return PurchaseResult(success: false, message: 'Not enough coins!');
     }
 
-    // 2. Force Sync to ensure server has latest balance
-    // This prevents "spending what you don't have" on the server
-    final synced = await syncState(user.uid);
-    if (!synced) {
+    try {
+      // Calculate new level
+      final newLevel = upgrade.level + 1;
+      final cost = upgrade.currentCost;
+
+      // We rely on GameNotifier to update the UserModel and save it to LocalRepo.
+      // Next syncState() will pick up the new ownedUpgrades list.
+
+      return PurchaseResult(
+        success: true,
+        message: 'Upgrade Successful!',
+        newLevel: newLevel,
+        coinsSpent: cost,
+      );
+    } catch (e) {
+      debugPrint('Purchase Error: $e');
       return PurchaseResult(
         success: false,
-        message: 'Sync failed. Check connection.',
+        message: 'Error processing purchase',
       );
-    }
-
-    // 2. Call Worker
-    try {
-      final response = await http.post(
-        Uri.parse('$_workerUrl/api/purchase-upgrade'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'uid': user.uid,
-          'upgradeId': upgrade.id,
-          'type': upgrade.type,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return PurchaseResult(
-          success: true,
-          message: 'Upgrade Successful!',
-          newLevel: data['newLevel'],
-          coinsSpent: data['cost'],
-        );
-      } else {
-        final err = jsonDecode(response.body);
-        return PurchaseResult(
-          success: false,
-          message: err['error'] ?? 'Failed',
-        );
-      }
-    } catch (e) {
-      return PurchaseResult(success: false, message: 'Network Error');
     }
   }
 

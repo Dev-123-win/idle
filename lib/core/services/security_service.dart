@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:device_apps/device_apps.dart';
+import 'package:installed_apps/installed_apps.dart';
 
 /// Security service for anti-cheat measures (F10.1)
 class SecurityService {
@@ -87,8 +87,8 @@ class SecurityService {
       // Check installed packages
       for (final appPackage in rootApps) {
         try {
-          bool isInstalled = await DeviceApps.isAppInstalled(appPackage);
-          if (isInstalled) {
+          bool? isInstalled = await InstalledApps.isAppInstalled(appPackage);
+          if (isInstalled == true) {
             _isRooted = true;
             _securityFlags.add('potentially_dangerous_app:$appPackage');
           }
