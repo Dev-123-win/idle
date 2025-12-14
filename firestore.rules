@@ -1,0 +1,123 @@
+rules_version = '2';
+service cloud.firestore {
+  // STRICT ONLINE-ONLY POLICY:
+  // - All gameplay stats (balance, upgrades) are updated exclusively by the Backend (Cloudflare Worker).
+  // - Users can only read their own data and update cosmetic profile fields.
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isValidCoinAmount(amount) {
+      return amount is int && amount >= 0;
+    }
+    
+    function isValidString(field, maxLength) {
+      return field is string && field.size() <= maxLength;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      // Users can read their own data
+      allow read: if isOwner(userId);
+      
+      // Users can create their own profile (Strict validation)
+      allow create: if isOwner(userId) && 
+        request.resource.data.keys().hasAll(['uid', 'displayName', 'createdAt', 'referralCode']) &&
+        request.resource.data.uid == userId &&
+        request.resource.data.coinBalance == 0 && // Must start with 0
+        request.resource.data.tapPower == 1 && // Default tap power
+        !request.resource.data.keys().hasAny(['isAdmin', 'isVip', 'hasPassiveUpgrade']); // No privileged flags
+      
+      // Users can ONLY update profile info (displayName, photoURL)
+      // Balance, Upgrades, and other gameplay stats MUST be updated via the Backend (Cloudflare Worker)
+      allow update: if isOwner(userId) && 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL', 'fcmToken']);
+      
+      // Users cannot delete their profile (Data retention)
+      allow delete: if false;
+    }
+    
+    // Withdrawal requests collection
+    match /withdrawalRequests/{requestId} {
+      // Users can read their own withdrawal requests
+      allow read: if isAuthenticated() && 
+        resource.data.uid == request.auth.uid;
+      
+      // Creation MUST be done via Backend to ensure balance check and deduction is atomic
+      allow create: if false;
+      
+      // Users cannot update or delete withdrawal requests
+      allow update, delete: if false;
+    }
+    
+    // Transactions collection
+    match /transactions/{transactionId} {
+      // Users can read their own transactions
+      allow read: if isAuthenticated() && 
+        resource.data.uid == request.auth.uid;
+      
+      // Users can create transaction records
+      allow create: if isAuthenticated() && 
+        request.resource.data.uid == request.auth.uid;
+      
+      // Users cannot update or delete transactions
+      allow update, delete: if false;
+    }
+    
+    // Global config (read-only for users)
+    match /globalConfig/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Only admin via console
+    }
+    
+    // Referrals tracking
+    match /referrals/{referralId} {
+      allow read: if isAuthenticated() && 
+        (resource.data.referrerId == request.auth.uid || 
+         resource.data.refereeId == request.auth.uid);
+      
+      allow create: if isAuthenticated() && 
+        request.resource.data.refereeId == request.auth.uid;
+      
+      allow update, delete: if false;
+    }
+    
+    // Device fingerprints (for anti-cheat)
+    match /deviceFingerprints/{fingerprintId} {
+      allow read: if isAuthenticated() && 
+        resource.data.uid == request.auth.uid;
+      
+      allow create: if isAuthenticated() && 
+        request.resource.data.uid == request.auth.uid;
+      
+      allow update: if isAuthenticated() && 
+        resource.data.uid == request.auth.uid;
+      
+      allow delete: if false;
+    }
+    
+    // Leaderboard (read-only, updated by backend)
+    match /leaderboard/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+    
+    // Banned users check
+    match /bannedUsers/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if false; // Strictly no writes by users
+    }
+    
+    // Secure Settings (Backend only)
+    match /secureSettings/{docId} {
+        allow read, write: if false;
+    }
+  }
+}
