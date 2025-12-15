@@ -19,6 +19,8 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
   bool _isAdLoaded = false;
   bool _adFailed = false;
 
+  String _errorMessage = '';
+
   @override
   void initState() {
     super.initState();
@@ -39,7 +41,10 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
           debugPrint('Native ad failed to load: ${error.message}');
           ad.dispose();
           if (mounted) {
-            setState(() => _adFailed = true);
+            setState(() {
+              _adFailed = true;
+              _errorMessage = error.message;
+            });
           }
         },
         onAdClicked: (ad) {
@@ -64,8 +69,20 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
   @override
   Widget build(BuildContext context) {
     // Don't show anything if ad failed
+    // Show error state for debugging
     if (_adFailed) {
-      return const SizedBox.shrink();
+      return Container(
+        height: 100,
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        color: Colors.red.withOpacity(0.1),
+        child: Center(
+          child: Text(
+            'Ad Failed: $_errorMessage',
+            style: const TextStyle(color: Colors.red),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
     }
 
     return Container(
@@ -203,7 +220,7 @@ class NativeAdListView extends StatelessWidget {
   final List<dynamic> items;
   final int adInterval;
   final Widget Function(BuildContext context, dynamic item, int index)
-  itemBuilder;
+      itemBuilder;
   final EdgeInsetsGeometry? padding;
 
   const NativeAdListView({

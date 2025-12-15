@@ -10,9 +10,10 @@ import 'core/models/user_model.dart';
 import 'core/models/upgrade_model.dart';
 import 'core/models/achievement_model.dart';
 import 'core/services/admob_service.dart';
-import 'features/splash/kinetic_forge_splash.dart';
+import 'features/splash/orbital_extraction_splash.dart';
 import 'features/auth/login_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'features/home/home_screen.dart';
 import 'core/services/security_service.dart';
 import 'core/repositories/local_game_repository.dart';
@@ -128,7 +129,10 @@ class _AppEntryState extends State<AppEntry> {
   }
 
   void _onSplashComplete() {
-    setState(() => _appState = AppState.login);
+    final user = FirebaseAuth.instance.currentUser;
+    setState(() {
+      _appState = user != null ? AppState.home : AppState.login;
+    });
   }
 
   void _onLoginComplete() {
@@ -185,7 +189,7 @@ class _AppEntryState extends State<AppEntry> {
   Widget _buildContent() {
     switch (_appState) {
       case AppState.splash:
-        return KineticForgeSplash(onComplete: _onSplashComplete);
+        return OrbitalExtractionSplash(onComplete: _onSplashComplete);
       case AppState.login:
         return LoginScreen(onLoginSuccess: _onLoginComplete);
       case AppState.home:
