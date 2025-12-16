@@ -33,6 +33,8 @@ class AdMobService {
   Future<void> initialize() async {
     await MobileAds.instance.initialize();
     debugPrint('AdMob initialized');
+    // Start preloading ads immediately (fire and forget)
+    preloadAds();
   }
 
   /// Set ads removed status
@@ -94,6 +96,8 @@ class AdMobService {
 
   // ===== INTERSTITIAL AD =====
 
+  int _interstitialLoadAttempts = 0;
+
   /// Load interstitial ad
   Future<void> loadInterstitial() async {
     if (_adsRemoved) return;
@@ -105,11 +109,14 @@ class AdMobService {
         onAdLoaded: (ad) {
           _interstitialAd = ad;
           _isInterstitialLoaded = true;
+          _interstitialLoadAttempts = 0; // Reset attempts
           debugPrint('Interstitial ad loaded');
         },
         onAdFailedToLoad: (error) {
           _isInterstitialLoaded = false;
+          _interstitialLoadAttempts++;
           debugPrint('Interstitial ad failed to load: ${error.message}');
+          _retryLoad(() => loadInterstitial(), _interstitialLoadAttempts);
         },
       ),
     );
@@ -118,13 +125,18 @@ class AdMobService {
   /// Check if interstitial can be shown
   bool get canShowInterstitial {
     if (_adsRemoved) return false;
-    if (!_isInterstitialLoaded || _interstitialAd == null) return false;
+    if (!_isInterstitialLoaded || _interstitialAd == null) {
+      // Try loading if not ready (and not currently loading?)
+      // Actually, standard practice is to just return false.
+      // If we are desperate, we can trigger load here, but show will still fail.
+      if (!_isInterstitialLoaded) loadInterstitial();
+      return false;
+    }
 
     // Check cooldown (3 minutes)
     if (_lastInterstitialTime != null) {
-      final elapsed = DateTime.now()
-          .difference(_lastInterstitialTime!)
-          .inSeconds;
+      final elapsed =
+          DateTime.now().difference(_lastInterstitialTime!).inSeconds;
       if (elapsed < AppConstants.interstitialCooldown) return false;
     }
 
@@ -181,6 +193,8 @@ class AdMobService {
 
   // ===== REWARDED AD =====
 
+  int _rewardedLoadAttempts = 0;
+
   /// Load rewarded ad
   Future<void> loadRewarded() async {
     await RewardedAd.load(
@@ -190,14 +204,25 @@ class AdMobService {
         onAdLoaded: (ad) {
           _rewardedAd = ad;
           _isRewardedLoaded = true;
+          _rewardedLoadAttempts = 0;
           debugPrint('Rewarded ad loaded');
         },
         onAdFailedToLoad: (error) {
           _isRewardedLoaded = false;
+          _rewardedLoadAttempts++;
           debugPrint('Rewarded ad failed to load: ${error.message}');
+          _retryLoad(() => loadRewarded(), _rewardedLoadAttempts);
         },
       ),
     );
+  }
+
+  /// Helper: Retry with exponential backoff
+  void _retryLoad(Function loadMethod, int attempts) {
+    if (attempts > 3) return; // Cap at 3 retries
+    final delay = Duration(seconds: 2 * attempts);
+    debugPrint('Retrying ad load in ${delay.inSeconds} seconds...');
+    Future.delayed(delay, () => loadMethod());
   }
 
   /// Is rewarded ad ready

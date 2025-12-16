@@ -153,8 +153,7 @@ class GameService {
     final sum = _actionIntervals.reduce((a, b) => a + b);
     final mean = sum / _actionIntervals.length;
 
-    final variance =
-        _actionIntervals
+    final variance = _actionIntervals
             .map((i) => (i - mean) * (i - mean))
             .reduce((a, b) => a + b) /
         _actionIntervals.length;
@@ -182,9 +181,8 @@ class GameService {
         : Duration.zero;
 
     final hoursPlayed = sessionDuration.inSeconds / 3600;
-    final coinsPerHour = hoursPlayed > 0
-        ? _sessionCoinsEarned / hoursPlayed
-        : 0;
+    final coinsPerHour =
+        hoursPlayed > 0 ? _sessionCoinsEarned / hoursPlayed : 0;
 
     return BehavioralReport(
       sessionDuration: sessionDuration,
@@ -240,7 +238,6 @@ class GameService {
   UserModel createNewUser({
     required String uid,
     String? email,
-    String? phoneNumber,
     String? displayName,
     String? photoURL,
     String? referredBy,
@@ -248,7 +245,6 @@ class GameService {
     final user = UserModel(
       uid: uid,
       email: email,
-      phoneNumber: phoneNumber,
       displayName: displayName ?? 'Miner',
       photoURL: photoURL,
       createdAt: DateTime.now(),
@@ -429,6 +425,34 @@ class GameService {
       return false;
     } finally {
       _isSyncing = false;
+    }
+  }
+
+  /// Redeem referral code
+  Future<Map<String, dynamic>> redeemReferral(String uid, String code) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_workerUrl/api/claim-referral'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'uid': uid, 'code': code}),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        // Success
+        // Update local state is difficult as we don't return full user here.
+        // We generally should trigger a sync or forced user path.
+        // For now, return success and let UI/Notifier handle local update (optimistic or re-fetch).
+        return {'success': true, 'reward': data['reward']};
+      } else {
+        return {
+          'success': false,
+          'message': data['error'] ?? 'Failed to redeem'
+        };
+      }
+    } catch (e) {
+      debugPrint('Referral Error: $e');
+      return {'success': false, 'message': 'Network error'};
     }
   }
 
@@ -885,9 +909,8 @@ class GameService {
       source: source,
       description: description,
       balanceBefore: balanceBefore,
-      balanceAfter: type == 'earn'
-          ? balanceBefore + amount
-          : balanceBefore - amount,
+      balanceAfter:
+          type == 'earn' ? balanceBefore + amount : balanceBefore - amount,
       createdAt: DateTime.now(),
     );
   }
@@ -1012,12 +1035,12 @@ class BehavioralReport {
   });
 
   Map<String, dynamic> toJson() => {
-    'durationSeconds': sessionDuration.inSeconds,
-    'taps': sessionTaps,
-    'coins': sessionCoins,
-    'coinsPerHour': coinsPerHour,
-    'flags': flags,
-  };
+        'durationSeconds': sessionDuration.inSeconds,
+        'taps': sessionTaps,
+        'coins': sessionCoins,
+        'coinsPerHour': coinsPerHour,
+        'flags': flags,
+      };
 
   @override
   String toString() =>

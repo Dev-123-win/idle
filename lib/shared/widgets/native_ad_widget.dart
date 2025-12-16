@@ -74,7 +74,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
       return Container(
         height: 100,
         margin: const EdgeInsets.symmetric(vertical: 8),
-        color: Colors.red.withOpacity(0.1),
+        color: Colors.red.withValues(alpha: 0.1),
         child: Center(
           child: Text(
             'Ad Failed: $_errorMessage',

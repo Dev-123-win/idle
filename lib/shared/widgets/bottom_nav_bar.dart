@@ -63,10 +63,17 @@ class CustomBottomNavBar extends StatelessWidget {
                 color: AppColors.coinGold,
               ),
               _NavItem(
-                icon: HugeIcons.strokeRoundedUser,
-                label: 'Profile',
+                icon: HugeIcons.strokeRoundedShoppingBag01,
+                label: 'Shop',
                 isSelected: currentIndex == 4,
                 onTap: () => onTap(4),
+                color: AppColors.coinOrange,
+              ),
+              _NavItem(
+                icon: HugeIcons.strokeRoundedUser,
+                label: 'Profile',
+                isSelected: currentIndex == 5,
+                onTap: () => onTap(5),
                 color: AppColors.info,
               ),
             ],
@@ -101,9 +108,8 @@ class _NavItem extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected
-              ? color.withValues(alpha: 0.15)
-              : Colors.transparent,
+          color:
+              isSelected ? color.withValues(alpha: 0.15) : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(

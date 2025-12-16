@@ -10,6 +10,7 @@ import '../mining/mining_screen.dart';
 import '../upgrades/upgrades_screen.dart';
 import '../wallet/wallet_screen.dart';
 import '../rewards/rewards_screen.dart';
+import '../shop/shop_screen.dart';
 import '../profile/profile_screen.dart';
 import '../../shared/widgets/loading_overlay.dart';
 
@@ -28,9 +29,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize demo user for testing
+    // Initialize game with authenticated user
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(gameProvider.notifier).initializeDemo();
+      final authService = ref.read(authServiceProvider);
+      final user = authService.currentUser;
+      if (user != null) {
+        ref.read(gameProvider.notifier).initializeGame(user.uid);
+      } else {
+        // Fallback or redirect if no user found (shouldn't happen if guarded)
+        debugPrint('No authenticated user found in HomeScreen');
+        // Optionally redirect to login if this happens
+        // ref.read(gameProvider.notifier).initializeDemo(); // Only for DEV
+      }
     });
     // Preload ads
     _adMobService.preloadAds();
@@ -41,23 +51,52 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _handleClaimRequired() {
+    final user = ref.read(gameProvider).user;
+
+    // Skip ad if purchased removal
+    if (user?.adsRemoved == true) {
+      ref
+          .read(gameProvider.notifier)
+          .claimTapRewards(); // Or claimPassive if needed?
+
+      // Note: Currently claimTapRewards handles tap claims.
+      // But _PassiveBanner calls this same callback.
+      // We might need to differentiate between Tap Claim and Passive Claim?
+      // _PassiveBanner calls widget.onClaimRequired.
+      // MiningScreen calls widget.onClaimRequired for BOTH Tap Progress Claim AND Passive Claim.
+      // BUT GameNotifier has separate methods: claimTapRewards() and claimPassiveEarnings().
+
+      // PROBLEM: MiningScreen uses same callback for both.
+      // I should either split the callback or handle both claims in one go.
+
+      // Let's claim both for convenience.
+      ref.read(gameProvider.notifier).claimTapRewards();
+      ref.read(gameProvider.notifier).claimPassiveEarnings();
+
+      _showClaimSuccess();
+      return;
+    }
+
     // Show rewarded ad then claim
     if (_adMobService.isRewardedReady) {
       _adMobService.showRewarded(
         onRewarded: (amount) {
           ref.read(gameProvider.notifier).claimTapRewards();
+          ref.read(gameProvider.notifier).claimPassiveEarnings();
           _showClaimSuccess();
         },
         onDismissed: () {},
         onFailed: () {
           // Grant reward anyway (user-friendly)
           ref.read(gameProvider.notifier).claimTapRewards();
+          ref.read(gameProvider.notifier).claimPassiveEarnings();
           _showClaimSuccess();
         },
       );
     } else {
       // No ad available, claim anyway
       ref.read(gameProvider.notifier).claimTapRewards();
+      ref.read(gameProvider.notifier).claimPassiveEarnings();
       _showClaimSuccess();
     }
   }
@@ -102,6 +141,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const UpgradesScreen(),
               const WalletScreen(),
               const RewardsScreen(),
+              const ShopScreen(),
               const ProfileScreen(),
             ],
           ),
@@ -156,11 +196,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   color: Colors.white,
                 ),
               ).animate().scale(
-                begin: const Offset(0, 0),
-                end: const Offset(1, 1),
-                duration: 500.ms,
-                curve: Curves.elasticOut,
-              ),
+                    begin: const Offset(0, 0),
+                    end: const Offset(1, 1),
+                    duration: 500.ms,
+                    curve: Curves.elasticOut,
+                  ),
               const SizedBox(height: 20),
               const Text(
                 '🎉 Achievement Unlocked! 🎉',

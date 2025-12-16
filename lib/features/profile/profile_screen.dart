@@ -5,6 +5,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/text_styles.dart';
 import '../../core/providers/game_provider.dart';
+import '../../shared/widgets/banner_ad_widget.dart';
+import '../notifications/notifications_screen.dart';
 
 /// Profile/Settings screen
 class ProfileScreen extends ConsumerWidget {
@@ -35,90 +37,87 @@ class ProfileScreen extends ConsumerWidget {
 
               // Profile card
               Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.primary.withValues(alpha: 0.1),
-                          AppColors.secondary.withValues(alpha: 0.1),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primary.withValues(alpha: 0.1),
+                      AppColors.secondary.withValues(alpha: 0.1),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.cardBorder),
+                ),
+                child: Column(
+                  children: [
+                    // Avatar
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        gradient: AppGradients.primary,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.4),
+                            blurRadius: 16,
+                            spreadRadius: 2,
+                          ),
                         ],
                       ),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.cardBorder),
-                    ),
-                    child: Column(
-                      children: [
-                        // Avatar
-                        Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            gradient: AppGradients.primary,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.primary.withValues(alpha: 0.4),
-                                blurRadius: 16,
-                                spreadRadius: 2,
-                              ),
-                            ],
+                      child: Center(
+                        child: Text(
+                          user.displayName.isNotEmpty
+                              ? user.displayName[0].toUpperCase()
+                              : 'M',
+                          style: AppTextStyles.displaySmall.copyWith(
+                            color: Colors.white,
                           ),
-                          child: Center(
-                            child: Text(
-                              user.displayName.isNotEmpty
-                                  ? user.displayName[0].toUpperCase()
-                                  : 'M',
-                              style: AppTextStyles.displaySmall.copyWith(
-                                color: Colors.white,
-                              ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Name
+                    Text(
+                      user.displayName,
+                      style: AppTextStyles.headlineMedium,
+                    ),
+                    if (user.email != null) ...[
+                      const SizedBox(height: 4),
+                      Text(user.email!, style: AppTextStyles.bodyMedium),
+                    ],
+                    const SizedBox(height: 16),
+                    // User ID
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            HugeIcons.strokeRoundedTag01,
+                            size: 16,
+                            color: AppColors.textMuted,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'ID: ${user.uid.substring(0, 8).toUpperCase()}',
+                            style: AppTextStyles.labelSmall.copyWith(
+                              color: AppColors.textMuted,
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        // Name
-                        Text(
-                          user.displayName,
-                          style: AppTextStyles.headlineMedium,
-                        ),
-                        if (user.email != null) ...[
-                          const SizedBox(height: 4),
-                          Text(user.email!, style: AppTextStyles.bodyMedium),
                         ],
-                        const SizedBox(height: 16),
-                        // User ID
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                HugeIcons.strokeRoundedTag01,
-                                size: 16,
-                                color: AppColors.textMuted,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'ID: ${user.uid.substring(0, 8).toUpperCase()}',
-                                style: AppTextStyles.labelSmall.copyWith(
-                                  color: AppColors.textMuted,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  )
-                  .animate()
-                  .fadeIn(duration: 400.ms)
-                  .scale(
+                  ],
+                ),
+              ).animate().fadeIn(duration: 400.ms).scale(
                     begin: const Offset(0.95, 0.95),
                     end: const Offset(1, 1),
                   ),
@@ -178,6 +177,44 @@ class ProfileScreen extends ConsumerWidget {
               // Referral section
               _SectionHeader(title: 'Referral'),
               _ReferralCard(referralCode: user.referralCode),
+              const SizedBox(height: 12),
+              // Redeem UI
+              if (user.referredBy == null)
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => _showRedeemDialog(context, ref),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      side: BorderSide(color: AppColors.primary),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('Already have a code? Redeem it'),
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.check_circle,
+                          color: AppColors.success, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Referred by: ${user.referredBy!}',
+                        style: AppTextStyles.bodySmall
+                            .copyWith(color: AppColors.success),
+                      ),
+                    ],
+                  ),
+                ),
 
               const SizedBox(height: 24),
 
@@ -190,24 +227,50 @@ class ProfileScreen extends ConsumerWidget {
                     title: 'Notifications',
                     subtitle: 'Enable push notifications',
                     isSwitch: true,
-                    value: true,
-                    onChanged: (_) {},
+                    value: user.isNotificationsEnabled,
+                    onChanged: (val) {
+                      ref.read(gameProvider.notifier).toggleNotifications(val);
+                    },
+                    onTap: () {
+                      // Navigate to notification history screen
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const NotificationsScreen(),
+                        ),
+                      );
+                    },
                   ),
                   _SettingsItem(
                     icon: HugeIcons.strokeRoundedSmartPhone01,
                     title: 'Haptic Feedback',
                     subtitle: 'Vibrate on tap',
                     isSwitch: true,
-                    value: true,
-                    onChanged: (_) {},
+                    value: user.isHapticEnabled,
+                    onChanged: (val) {
+                      ref.read(gameProvider.notifier).toggleHaptic(val);
+                    },
                   ),
                   _SettingsItem(
                     icon: HugeIcons.strokeRoundedVolumeHigh,
                     title: 'Sound Effects',
                     subtitle: 'Play sounds',
                     isSwitch: true,
-                    value: false,
+                    value: false, // Default to false for now as not implemented
                     onChanged: (_) {},
+                  ),
+                  _SettingsItem(
+                    icon: Icons.history,
+                    title: 'Notification History',
+                    subtitle: 'View recent alerts',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const NotificationsScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -247,7 +310,10 @@ class ProfileScreen extends ConsumerWidget {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: () {},
+                  onPressed: () async {
+                    await ref.read(authServiceProvider).signOut();
+                    // Navigation handled by auth listener in main
+                  },
                   icon: Icon(
                     HugeIcons.strokeRoundedLogout01,
                     color: AppColors.error,
@@ -278,6 +344,12 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ),
 
+              // Banner Ad
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: BannerAdWidget(),
+              ),
+
               const SizedBox(height: 100),
             ],
           ),
@@ -293,6 +365,82 @@ class ProfileScreen extends ConsumerWidget {
       return '${(num / 1000).toStringAsFixed(1)}K';
     }
     return num.toString();
+  }
+
+  void _showRedeemDialog(BuildContext context, WidgetRef ref) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        title: Text(
+          'Redeem Referral Code',
+          style: AppTextStyles.titleLarge,
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Enter a friend\'s code to get 5,000 coins!',
+              style: AppTextStyles.bodyMedium,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              decoration: InputDecoration(
+                hintText: 'Enter Code',
+                filled: true,
+                fillColor: AppColors.background,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.cardBorder),
+                ),
+              ),
+              textCapitalization: TextCapitalization.characters,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final code = controller.text.trim().toUpperCase();
+              if (code.isEmpty) return;
+
+              Navigator.pop(context); // Close dialog
+
+              // Show loading if needed or snackbar
+
+              final error = await ref
+                  .read(gameProvider.notifier)
+                  .redeemReferralCode(code);
+
+              if (context.mounted) {
+                if (error == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Success! 5,000 coins added.'),
+                      backgroundColor: AppColors.success,
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(error),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Redeem'),
+          ),
+        ],
+      ),
+    );
   }
 }
 

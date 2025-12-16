@@ -49,38 +49,6 @@ class AuthService {
     }
   }
 
-  /// Sign in with Phone Number
-  Future<void> signInWithPhone({
-    required String phoneNumber,
-    required Function(String verificationId, int? resendToken) onCodeSent,
-    required Function(PhoneAuthCredential credential) onVerificationCompleted,
-    required Function(FirebaseAuthException e) onVerificationFailed,
-    required Function(String verificationId) onCodeAutoRetrievalTimeout,
-    int? resendToken,
-  }) async {
-    await _auth.verifyPhoneNumber(
-      phoneNumber: phoneNumber,
-      timeout: const Duration(seconds: 60),
-      forceResendingToken: resendToken,
-      verificationCompleted: onVerificationCompleted,
-      verificationFailed: onVerificationFailed,
-      codeSent: onCodeSent,
-      codeAutoRetrievalTimeout: onCodeAutoRetrievalTimeout,
-    );
-  }
-
-  /// Verify OTP and sign in
-  Future<UserCredential> verifyOTPAndSignIn({
-    required String verificationId,
-    required String otp,
-  }) async {
-    final credential = PhoneAuthProvider.credential(
-      verificationId: verificationId,
-      smsCode: otp,
-    );
-    return await _auth.signInWithCredential(credential);
-  }
-
   /// Send email verification
   Future<void> sendEmailVerification() async {
     await currentUser?.sendEmailVerification();

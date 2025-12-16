@@ -13,9 +13,6 @@ class UserModel {
   @HiveField(1)
   final String? email;
 
-  @HiveField(2)
-  final String? phoneNumber;
-
   @HiveField(3)
   final String displayName;
 
@@ -103,10 +100,15 @@ class UserModel {
   @HiveField(29)
   final List<AchievementModel> achievements;
 
+  @HiveField(30)
+  final bool isNotificationsEnabled;
+
+  @HiveField(31)
+  final bool isHapticEnabled;
+
   UserModel({
     required this.uid,
     this.email,
-    this.phoneNumber,
     required this.displayName,
     this.photoURL,
     required this.createdAt,
@@ -134,12 +136,13 @@ class UserModel {
     this.hasPassiveUpgrade = false,
     this.ownedUpgrades = const [],
     this.achievements = const [],
+    this.isNotificationsEnabled = true,
+    this.isHapticEnabled = true,
   });
 
   UserModel copyWith({
     String? uid,
     String? email,
-    String? phoneNumber,
     String? displayName,
     String? photoURL,
     DateTime? createdAt,
@@ -167,11 +170,12 @@ class UserModel {
     bool? hasPassiveUpgrade,
     List<OwnedUpgrade>? ownedUpgrades,
     List<AchievementModel>? achievements,
+    bool? isNotificationsEnabled,
+    bool? isHapticEnabled,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
       email: email ?? this.email,
-      phoneNumber: phoneNumber ?? this.phoneNumber,
       displayName: displayName ?? this.displayName,
       photoURL: photoURL ?? this.photoURL,
       createdAt: createdAt ?? this.createdAt,
@@ -199,6 +203,9 @@ class UserModel {
       hasPassiveUpgrade: hasPassiveUpgrade ?? this.hasPassiveUpgrade,
       ownedUpgrades: ownedUpgrades ?? this.ownedUpgrades,
       achievements: achievements ?? this.achievements,
+      isNotificationsEnabled:
+          isNotificationsEnabled ?? this.isNotificationsEnabled,
+      isHapticEnabled: isHapticEnabled ?? this.isHapticEnabled,
     );
   }
 
@@ -206,7 +213,6 @@ class UserModel {
     return {
       'uid': uid,
       'email': email,
-      'phoneNumber': phoneNumber,
       'displayName': displayName,
       'photoURL': photoURL,
       'createdAt': createdAt.toIso8601String(),
@@ -234,6 +240,8 @@ class UserModel {
       'hasPassiveUpgrade': hasPassiveUpgrade,
       'ownedUpgrades': ownedUpgrades.map((u) => u.toJson()).toList(),
       'achievements': achievements.map((a) => a.toJson()).toList(),
+      'isNotificationsEnabled': isNotificationsEnabled,
+      'isHapticEnabled': isHapticEnabled,
     };
   }
 
@@ -241,7 +249,6 @@ class UserModel {
     return UserModel(
       uid: json['uid'] as String,
       email: json['email'] as String?,
-      phoneNumber: json['phoneNumber'] as String?,
       displayName: json['displayName'] as String? ?? 'Miner',
       photoURL: json['photoURL'] as String?,
       createdAt: json['createdAt'] != null
@@ -275,22 +282,21 @@ class UserModel {
           : null,
       emailVerified: json['emailVerified'] as bool? ?? false,
       totalPassiveEarned: (json['totalPassiveEarned'] as num?)?.toInt() ?? 0,
-      claimedReferrals:
-          (json['claimedReferrals'] as List<dynamic>?)
+      claimedReferrals: (json['claimedReferrals'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           [],
       hasPassiveUpgrade: json['hasPassiveUpgrade'] as bool? ?? false,
-      ownedUpgrades:
-          (json['ownedUpgrades'] as List<dynamic>?)
+      ownedUpgrades: (json['ownedUpgrades'] as List<dynamic>?)
               ?.map((e) => OwnedUpgrade.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
-      achievements:
-          (json['achievements'] as List<dynamic>?)
+      achievements: (json['achievements'] as List<dynamic>?)
               ?.map((e) => AchievementModel.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
+      isNotificationsEnabled: json['isNotificationsEnabled'] as bool? ?? true,
+      isHapticEnabled: json['isHapticEnabled'] as bool? ?? true,
     );
   }
 

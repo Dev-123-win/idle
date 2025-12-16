@@ -13,6 +13,7 @@ import '../../shared/widgets/coin_display.dart';
 import '../../shared/widgets/gradient_button.dart';
 import '../../shared/widgets/upgrade_card.dart';
 import '../../shared/widgets/coin_tap_animator.dart';
+import '../../shared/widgets/banner_ad_widget.dart';
 
 /// Main mining screen - primary game interface
 class MiningScreen extends ConsumerStatefulWidget {
@@ -120,10 +121,10 @@ class _MiningScreenState extends ConsumerState<MiningScreen>
         Container(
           decoration: BoxDecoration(
             gradient: RadialGradient(
-              center: const Alignment(0, -0.3),
-              radius: 1.2,
+              center: Alignment(0, -0.6), // Moved up slightly
+              radius: 1.5,
               colors: [
-                AppColors.primary.withValues(alpha: 0.1),
+                AppColors.primary.withValues(alpha: 0.15),
                 AppColors.background,
               ],
             ),
@@ -138,7 +139,7 @@ class _MiningScreenState extends ConsumerState<MiningScreen>
 
               // Balance card
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: LargeCoinDisplay(coins: user.coinBalance),
               ),
 
@@ -253,23 +254,12 @@ class _MiningScreenState extends ConsumerState<MiningScreen>
                               ),
                             ],
                           ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                HugeIcons.strokeRoundedTap02,
-                                size: 72,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'TAP',
-                                style: AppTextStyles.headlineLarge.copyWith(
-                                  color: Colors.white,
-                                  letterSpacing: 4,
-                                ),
-                              ),
-                            ],
+                          child: Padding(
+                            padding: const EdgeInsets.all(20.0),
+                            child: Image.asset(
+                              'assets/Coin.png',
+                              fit: BoxFit.contain,
+                            ),
                           ),
                         ),
                       ),
@@ -293,18 +283,15 @@ class _MiningScreenState extends ConsumerState<MiningScreen>
               // Claim button
               if (canClaim)
                 Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: GradientButton(
-                        text: 'CLAIM $pendingCoins COINS',
-                        icon: HugeIcons.strokeRoundedGift,
-                        width: double.infinity,
-                        gradientColors: AppColors.successGradient,
-                        onPressed: () => widget.onClaimRequired?.call(),
-                      ),
-                    )
-                    .animate()
-                    .fadeIn(duration: 200.ms)
-                    .scale(
+                  padding: const EdgeInsets.all(24),
+                  child: GradientButton(
+                    text: 'CLAIM $pendingCoins COINS',
+                    icon: HugeIcons.strokeRoundedGift,
+                    width: double.infinity,
+                    gradientColors: AppColors.successGradient,
+                    onPressed: () => widget.onClaimRequired?.call(),
+                  ),
+                ).animate().fadeIn(duration: 200.ms).scale(
                       begin: const Offset(0.9, 0.9),
                       end: const Offset(1, 1),
                     )
@@ -312,6 +299,12 @@ class _MiningScreenState extends ConsumerState<MiningScreen>
                 const SizedBox(height: 100),
 
               const SizedBox(height: 8),
+
+              // Banner Ad
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8.0),
+                child: BannerAdWidget(),
+              ),
             ],
           ),
         ),
@@ -340,18 +333,18 @@ class _FloatingNumberWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-          '+$amount',
-          style: AppTextStyles.headlineMedium.copyWith(
-            color: AppColors.coinGold,
-            fontWeight: FontWeight.w900,
-            shadows: [
-              Shadow(
-                color: AppColors.coinGold.withValues(alpha: 0.7),
-                blurRadius: 12,
-              ),
-            ],
+      '+$amount',
+      style: AppTextStyles.headlineMedium.copyWith(
+        color: AppColors.coinGold,
+        fontWeight: FontWeight.w900,
+        shadows: [
+          Shadow(
+            color: AppColors.coinGold.withValues(alpha: 0.7),
+            blurRadius: 12,
           ),
-        )
+        ],
+      ),
+    )
         .animate()
         .moveY(begin: 0, end: -80, duration: 700.ms, curve: Curves.easeOutCubic)
         .fadeOut(delay: 400.ms, duration: 300.ms)
@@ -433,79 +426,77 @@ class _PassiveBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 24),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppColors.secondary.withValues(alpha: 0.2),
-                AppColors.primary.withValues(alpha: 0.2),
-              ],
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.secondary.withValues(alpha: 0.2),
+            AppColors.primary.withValues(alpha: 0.2),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.secondary.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppColors.secondary.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(14),
             ),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: AppColors.secondary.withValues(alpha: 0.5),
+            child: const Icon(
+              HugeIcons.strokeRoundedMoon,
+              color: AppColors.secondary,
+              size: 28,
             ),
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppColors.secondary.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(
-                  HugeIcons.strokeRoundedMoon,
-                  color: AppColors.secondary,
-                  size: 28,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Passive Earnings', style: AppTextStyles.titleSmall),
+                const SizedBox(height: 4),
+                Row(
                   children: [
-                    Text('Passive Earnings', style: AppTextStyles.titleSmall),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        CoinDisplay(coins: coins, size: 16, compact: true),
-                        Text(
-                          ' • ${_formatDuration(duration)}',
-                          style: AppTextStyles.bodySmall,
-                        ),
-                      ],
+                    CoinDisplay(coins: coins, size: 16, compact: true),
+                    Text(
+                      ' • ${_formatDuration(duration)}',
+                      style: AppTextStyles.bodySmall,
                     ),
                   ],
                 ),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: onClaim,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 10,
               ),
-              GestureDetector(
-                onTap: onClaim,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: AppGradients.success,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    'CLAIM',
-                    style: AppTextStyles.labelSmall.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+              decoration: BoxDecoration(
+                gradient: AppGradients.success,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'CLAIM',
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-            ],
+            ),
           ),
-        )
-        .animate(onPlay: (c) => c.repeat())
-        .shimmer(
+        ],
+      ),
+    ).animate(onPlay: (c) => c.repeat()).shimmer(
           duration: 2000.ms,
           color: AppColors.secondary.withValues(alpha: 0.2),
         );

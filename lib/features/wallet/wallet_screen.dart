@@ -7,7 +7,9 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/text_styles.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/providers/game_provider.dart';
+import '../../core/services/admob_service.dart';
 import '../../shared/widgets/gradient_button.dart';
+import '../../shared/widgets/banner_ad_widget.dart';
 
 /// Wallet screen for viewing balance and withdrawals
 class WalletScreen extends ConsumerWidget {
@@ -42,97 +44,94 @@ class WalletScreen extends ConsumerWidget {
 
               // Main balance card
               Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppColors.cardBackground, AppColors.surface],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: AppColors.coinGold.withValues(alpha: 0.3),
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.coinGold.withValues(alpha: 0.1),
-                          blurRadius: 30,
-                          spreadRadius: 5,
-                        ),
-                      ],
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.cardBackground, AppColors.surface],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: AppColors.coinGold.withValues(alpha: 0.3),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.coinGold.withValues(alpha: 0.1),
+                      blurRadius: 30,
+                      spreadRadius: 5,
                     ),
-                    child: Column(
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      'TOTAL BALANCE',
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: AppColors.textMuted,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        Image.asset(
+                          'assets/Coin.png',
+                          width: 56,
+                          height: 56,
+                          errorBuilder: (_, __, ___) => Icon(
+                            HugeIcons.strokeRoundedMoney03,
+                            color: AppColors.coinGold,
+                            size: 56,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
                         Text(
-                          'TOTAL BALANCE',
-                          style: AppTextStyles.labelSmall.copyWith(
-                            color: AppColors.textMuted,
-                            letterSpacing: 2,
+                          NumberFormat('#,###').format(user.coinBalance),
+                          style: AppTextStyles.displayMedium.copyWith(
+                            color: AppColors.coinGold,
+                            fontWeight: FontWeight.w900,
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.asset(
-                              'assets/Coin.png',
-                              width: 56,
-                              height: 56,
-                              errorBuilder: (_, __, ___) => Icon(
-                                HugeIcons.strokeRoundedMoney03,
-                                color: AppColors.coinGold,
-                                size: 56,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Text(
-                              NumberFormat('#,###').format(user.coinBalance),
-                              style: AppTextStyles.displayMedium.copyWith(
-                                color: AppColors.coinGold,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.success.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '≈ ₹${inrBalance.toStringAsFixed(2)}',
-                            style: AppTextStyles.inrAmountLarge,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        // Withdraw button
-                        GradientButton(
-                          text: canWithdraw
-                              ? 'WITHDRAW'
-                              : 'MIN ₹${minWithdrawalINR.round()} TO WITHDRAW',
-                          width: double.infinity,
-                          enabled: canWithdraw,
-                          gradientColors: canWithdraw
-                              ? AppColors.successGradient
-                              : [AppColors.surface, AppColors.surfaceLight],
-                          icon: HugeIcons.strokeRoundedWallet01,
-                          onPressed: canWithdraw
-                              ? () => _showWithdrawBottomSheet(context)
-                              : null,
                         ),
                       ],
                     ),
-                  )
-                  .animate()
-                  .fadeIn(duration: 400.ms)
-                  .scale(
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.success.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '≈ ₹${inrBalance.toStringAsFixed(2)}',
+                        style: AppTextStyles.inrAmountLarge,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    // Withdraw button
+                    GradientButton(
+                      text: canWithdraw
+                          ? 'WITHDRAW'
+                          : 'MIN ₹${minWithdrawalINR.round()} TO WITHDRAW',
+                      width: double.infinity,
+                      enabled: canWithdraw,
+                      gradientColors: canWithdraw
+                          ? AppColors.successGradient
+                          : [AppColors.surface, AppColors.surfaceLight],
+                      icon: HugeIcons.strokeRoundedWallet01,
+                      onPressed: canWithdraw
+                          ? () => _showWithdrawBottomSheet(context)
+                          : null,
+                    ),
+                  ],
+                ),
+              ).animate().fadeIn(duration: 400.ms).scale(
                     begin: const Offset(0.95, 0.95),
                     end: const Offset(1, 1),
                   ),
@@ -231,6 +230,12 @@ class WalletScreen extends ConsumerWidget {
                   ],
                 ),
               ).animate().fadeIn(delay: 600.ms, duration: 400.ms),
+
+              // Banner Ad
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: BannerAdWidget(),
+              ),
 
               const SizedBox(height: 100),
             ],
@@ -562,24 +567,33 @@ class _WithdrawBottomSheetState extends ConsumerState<_WithdrawBottomSheet> {
               width: double.infinity,
               gradientColors: AppColors.successGradient,
               onPressed: () async {
-                final success = await ref
-                    .read(gameProvider.notifier)
-                    .withdrawFunds(
-                      coins, // Pass total coins to withdraw
-                      _method,
-                      _method == 'upi'
-                          ? {'upiId': _upiController.text}
-                          : {
-                              'accountNumber': _accountController.text,
-                              'ifsc': _ifscController.text,
-                              'holderName': _nameController.text,
-                            },
-                    );
+                final success =
+                    await ref.read(gameProvider.notifier).withdrawFunds(
+                          coins, // Pass total coins to withdraw
+                          _method,
+                          _method == 'upi'
+                              ? {'upiId': _upiController.text}
+                              : {
+                                  'accountNumber': _accountController.text,
+                                  'ifsc': _ifscController.text,
+                                  'holderName': _nameController.text,
+                                },
+                        );
 
                 if (!context.mounted) return;
                 Navigator.pop(context);
 
-                if (success) {
+                // Show Interstitial Ad if available
+                final adService = AdMobService();
+                if (adService.canShowInterstitial) {
+                  await adService.showInterstitial(
+                    onDismissed: () {
+                      // Proceed to show snackbar after ad
+                    },
+                  );
+                }
+
+                if (success && context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: const Text(
@@ -592,7 +606,7 @@ class _WithdrawBottomSheetState extends ConsumerState<_WithdrawBottomSheet> {
                       ),
                     ),
                   );
-                } else {
+                } else if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: const Text(

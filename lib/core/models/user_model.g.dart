@@ -19,7 +19,6 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
     return UserModel(
       uid: fields[0] as String,
       email: fields[1] as String?,
-      phoneNumber: fields[2] as String?,
       displayName: fields[3] as String,
       photoURL: fields[4] as String?,
       createdAt: fields[5] as DateTime,
@@ -47,19 +46,19 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       hasPassiveUpgrade: fields[27] as bool,
       ownedUpgrades: (fields[28] as List).cast<OwnedUpgrade>(),
       achievements: (fields[29] as List).cast<AchievementModel>(),
+      isNotificationsEnabled: fields[30] as bool,
+      isHapticEnabled: fields[31] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, UserModel obj) {
     writer
-      ..writeByte(30)
+      ..writeByte(31)
       ..writeByte(0)
       ..write(obj.uid)
       ..writeByte(1)
       ..write(obj.email)
-      ..writeByte(2)
-      ..write(obj.phoneNumber)
       ..writeByte(3)
       ..write(obj.displayName)
       ..writeByte(4)
@@ -113,7 +112,11 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       ..writeByte(28)
       ..write(obj.ownedUpgrades)
       ..writeByte(29)
-      ..write(obj.achievements);
+      ..write(obj.achievements)
+      ..writeByte(30)
+      ..write(obj.isNotificationsEnabled)
+      ..writeByte(31)
+      ..write(obj.isHapticEnabled);
   }
 
   @override

@@ -11,13 +11,15 @@ import 'core/models/upgrade_model.dart';
 import 'core/models/achievement_model.dart';
 import 'core/services/admob_service.dart';
 import 'features/splash/orbital_extraction_splash.dart';
-import 'features/auth/login_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'features/home/home_screen.dart';
+import 'features/auth/login_screen.dart';
 import 'core/services/security_service.dart';
 import 'core/repositories/local_game_repository.dart';
 import 'firebase_options.dart';
+import 'core/services/notification_service.dart';
+import 'core/models/notification_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,6 +30,7 @@ void main() async {
   Hive.registerAdapter(UpgradeModelAdapter());
   Hive.registerAdapter(AchievementModelAdapter());
   Hive.registerAdapter(OwnedUpgradeAdapter());
+  Hive.registerAdapter(NotificationModelAdapter());
 
   // Initialize Local Repository
   await LocalGameRepository().init();
@@ -46,6 +49,13 @@ void main() async {
 
   // Initialize Security Service
   await SecurityService().initialize();
+
+  // Initialize Notification Service
+  try {
+    await NotificationService().initialize();
+  } catch (e) {
+    debugPrint("Notification init failed: $e");
+  }
 
   // Set system UI style
   SystemChrome.setSystemUIOverlayStyle(

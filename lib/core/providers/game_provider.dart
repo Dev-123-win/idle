@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../models/user_model.dart';
@@ -82,10 +83,15 @@ class GameNotifier extends StateNotifier<GameState> {
   final ApiService _apiService;
   final GameService _gameService;
   final FirestoreService _firestoreService;
+  final AuthService _authService;
   Timer? _passiveTimer;
 
-  GameNotifier(this._apiService, this._gameService, this._firestoreService)
-    : super(const GameState());
+  GameNotifier(
+    this._apiService,
+    this._gameService,
+    this._firestoreService,
+    this._authService,
+  ) : super(const GameState());
 
   /// Initialize game for a user
   Future<void> initializeGame(String uid) async {
@@ -117,9 +123,19 @@ class GameNotifier extends StateNotifier<GameState> {
         }
       }
 
+      // If still null, create new user (First time ever)
       if (user == null) {
-        state = state.copyWith(isLoading: false, error: 'User not found');
-        return;
+        // Get user details from auth service
+        final currentUser = _authService.currentUser;
+        user = _gameService.createNewUser(
+          uid: uid,
+          email: currentUser?.email,
+          displayName: currentUser?.displayName,
+          photoURL: currentUser?.photoURL,
+        );
+
+        // Sync to Firestore immediately
+        await _firestoreService.createUser(user);
       }
 
       // Check for daily reset
@@ -241,6 +257,15 @@ class GameNotifier extends StateNotifier<GameState> {
     final result = _gameService.processTap(state.user!);
 
     if (result.success) {
+      // Haptic Feedback
+      if (state.user!.isHapticEnabled) {
+        // Use built-in or plugin. Plugin 'vibration' is in pubspec.
+        // Calling it safely.
+        // We need to import 'package:vibration/vibration.dart' or 'package:flutter/services.dart' for HapticFeedback.
+        // Let's use Flutter's HapticFeedback for simplicity if it works, or Vibration.
+        HapticFeedback.lightImpact();
+      }
+
       // Update local state (Optimistic)
       state = state.copyWith(
         pendingTaps: state.pendingTaps + 1,
@@ -355,8 +380,8 @@ class GameNotifier extends StateNotifier<GameState> {
     );
 
     if (existingIndex >= 0) {
-      newOwnedUpgrades[existingIndex] = newOwnedUpgrades[existingIndex]
-          .copyWith(level: result.newLevel);
+      newOwnedUpgrades[existingIndex] =
+          newOwnedUpgrades[existingIndex].copyWith(level: result.newLevel);
     } else {
       newOwnedUpgrades.add(
         OwnedUpgrade(
@@ -506,9 +531,8 @@ class GameNotifier extends StateNotifier<GameState> {
 
     state = state.copyWith(
       achievements: newAchievements,
-      newlyUnlockedAchievement: newlyUnlocked.isNotEmpty
-          ? newlyUnlocked.first
-          : null,
+      newlyUnlockedAchievement:
+          newlyUnlocked.isNotEmpty ? newlyUnlocked.first : null,
     );
   }
 
@@ -589,9 +613,8 @@ class GameNotifier extends StateNotifier<GameState> {
         'hasPassiveUpgrade': hasPassive,
         'passiveRate': newPassiveRate,
         if (productId == 'vip_monthly')
-          'vipUntil': DateTime.now()
-              .add(const Duration(days: 30))
-              .toIso8601String(),
+          'vipUntil':
+              DateTime.now().add(const Duration(days: 30)).toIso8601String(),
       });
     } catch (e) {
       debugPrint('Error syncing purchase: $e');
@@ -601,11 +624,24 @@ class GameNotifier extends StateNotifier<GameState> {
     await _gameService.saveUserLocal(state.user!);
   }
 
-  /// Set ads removed
-  void setAdsRemoved(bool removed) {
+  /// Toggle Notifications
+  Future<void> toggleNotifications(bool enabled) async {
     if (state.user == null) return;
 
-    state = state.copyWith(user: state.user!.copyWith(adsRemoved: removed));
+    state = state.copyWith(
+      user: state.user!.copyWith(isNotificationsEnabled: enabled),
+    );
+    await _gameService.saveUserLocal(state.user!);
+  }
+
+  /// Toggle Haptic Feedback
+  Future<void> toggleHaptic(bool enabled) async {
+    if (state.user == null) return;
+
+    state = state.copyWith(
+      user: state.user!.copyWith(isHapticEnabled: enabled),
+    );
+    await _gameService.saveUserLocal(state.user!);
   }
 
   /// Withdraw funds
@@ -730,6 +766,44 @@ class GameNotifier extends StateNotifier<GameState> {
     }
   }
 
+  /// Redeem a referral code
+  Future<String?> redeemReferralCode(String code) async {
+    if (state.user == null) return 'Not logged in';
+    if (state.user!.referredBy != null) return 'Already referred';
+    if (state.user!.referralCode == code) return 'Cannot refer yourself';
+
+    state = state.copyWith(isLoading: true);
+
+    try {
+      final result = await _gameService.redeemReferral(state.user!.uid, code);
+
+      if (result['success'] == true) {
+        final reward = result['reward'] as int;
+
+        // Optimistic Update
+        final newBalance = state.user!.coinBalance + reward;
+        final newLifetime = state.user!.lifetimeCoinsEarned + reward;
+
+        state = state.copyWith(
+          user: state.user!.copyWith(
+            coinBalance: newBalance,
+            lifetimeCoinsEarned: newLifetime,
+            referredBy: 'validated', // Or wait for sync
+          ),
+        );
+        await _gameService.saveUserLocal(state.user!);
+
+        return null; // Success (no error)
+      } else {
+        return result['message'] as String;
+      }
+    } catch (e) {
+      return 'An error occurred';
+    } finally {
+      state = state.copyWith(isLoading: false);
+    }
+  }
+
   @override
   void dispose() {
     _passiveTimer?.cancel();
@@ -741,7 +815,13 @@ final gameProvider = StateNotifierProvider<GameNotifier, GameState>((ref) {
   final apiService = ref.watch(apiServiceProvider);
   final gameService = ref.watch(gameServiceProvider);
   final firestoreService = ref.watch(firestoreServiceProvider);
-  return GameNotifier(apiService, gameService, firestoreService);
+  final authService = ref.watch(authServiceProvider);
+  return GameNotifier(
+    apiService,
+    gameService,
+    firestoreService,
+    authService,
+  );
 });
 
 // Convenience providers
